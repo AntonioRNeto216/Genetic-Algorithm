@@ -178,6 +178,12 @@ class GeneticAlgorithm:
         for i in range(self._number_of_generations):
             
             self._fitness_function_for_all_population()
+
+            # Sort population
+            self._population.sort(
+                key = lambda individual : individual.return_fitness_value()
+            )
+
             self._data_visualizer.new_generation_data(
                 generation_number = i + 1,
                 population = self._population
@@ -187,7 +193,7 @@ class GeneticAlgorithm:
                 continue
 
             new_population = []
-            while len(new_population) != self._population_size:
+            while len(new_population) != self._population_size - 2:
                 first_individual = self._tournament_selection()
                 second_individual = self._tournament_selection()
 
@@ -200,11 +206,20 @@ class GeneticAlgorithm:
                     new_population.append(crossover_return[0])
                     new_population.append(crossover_return[1])
 
+            # Saves to elitism
+            fittest_from_last_generation = self._population[0]
+            mutated_fittest_from_last_generation = self._population[0]
+            mutated_fittest_from_last_generation.individual_mutation()
+
             # Clears population list and defines a new population
             self._population.clear()
             self._population = new_population
 
             self._mutation()
+
+            # Elitism includes the fittest from last generation and a mutation version of it
+            new_population.append(fittest_from_last_generation)
+            new_population.append(mutated_fittest_from_last_generation)
 
         self._data_visualizer.generate_files(
             number_of_generations = self._number_of_generations,

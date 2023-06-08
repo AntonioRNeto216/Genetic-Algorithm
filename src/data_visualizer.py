@@ -66,18 +66,12 @@ class DataVisualizer:
 
         Parameters:
         - ``generation_number``: current generation
-        - ``population``: all population
+        - ``population``: all population list is sorted
         '''
-        
-        # Sort population
-        sorted_population = sorted(
-            population,
-            key = lambda individual : individual.return_fitness_value()
-        )
 
-        fittest = sorted_population[0]
-        medium_fit = sorted_population[int(len(sorted_population) / 2) - 1]
-        less_fit = sorted_population[-1]
+        fittest = population[0]
+        medium_fit = population[int(len(population) / 2) - 1]
+        less_fit = population[-1]
 
         # Update Convergence Data
         self._higher_fitnesses.append(fittest.return_fitness_value())
@@ -85,7 +79,7 @@ class DataVisualizer:
         self._lower_fitnesses.append(less_fit.return_fitness_value())
 
         # Update Statistics Data
-        all_fitness_from_population = [individual.return_fitness_value() for individual in sorted_population]
+        all_fitness_from_population = [individual.return_fitness_value() for individual in population]
         self._standard_deviations.append(statistics.stdev(all_fitness_from_population))
         self._mean.append(statistics.mean(all_fitness_from_population))
         self._variance.append(statistics.variance(all_fitness_from_population))
