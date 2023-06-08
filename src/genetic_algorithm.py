@@ -12,25 +12,70 @@ from src.data_visualizer import DataVisualizer
 
 
 class GeneticAlgorithm:
+    '''
+    Holds all process and data to generate an answer for the problem.
+
+    Attributes:
+    - ``self._data``: holds all information from flights.txt
+    - ``self._population``: a list that holds 'population_size' Individuals
+    - ``self._data_visualizer``: class to manage visualization
+    - ``self._number_of_generations``: low_number < N < high_number
+    - ``self._population_size``: low_number < N < high_number
+    - ``self._probability_of_crossover``: 0 < p < 1
+    - ``self._probability_of_mutation``: 0 < p < 1
+    - ``self._tournament_parameter_N``: N > 0
+    - ``self._tournament_parameter_K``: 0 <= K <= 1
+    '''
 
     def __init__(self) -> None:
+        '''
+        Defines parameters and attribute. In addition, it generates a database.
+        '''
         self._define_parameters_and_attributes()
         self._generates_database()
 
     def _define_parameters_and_attributes(self) -> None:
+        '''
+        Defines the basic data.
+        '''
         self._data = {}
         self._population = []
 
         self._data_visualizer = DataVisualizer()
 
-        self._number_of_generations = 100       #TODO low_number < N < high_number
-        self._population_size = 100             #TODO low_number < N < high_number
-        self._probability_of_crossover = 0.5    #TODO 0 < p < 1
-        self._probability_of_mutation = 0.05    #TODO 0 < p < 1
-        self._tournament_parameter_N = 5        #TODO N > 0
-        self._tournament_parameter_K = 0.75     #TODO 0 <= K <= 1
+        self._number_of_generations = 100   
+        self._population_size = 100         
+        self._probability_of_crossover = 0.5
+        self._probability_of_mutation = 0.05
+        self._tournament_parameter_N = 5    
+        self._tournament_parameter_K = 0.75 
 
     def _generates_database(self) -> None:
+        '''
+        Generates a dictionary to hold all data from flights.txt.
+
+        The structure is: 
+        ```
+        {
+            'origin1': {
+                'destination11': [ 
+                    [start_time1, end_time1, price1],
+                    [start_time2, end_time2, price2],
+                    ...
+                ],
+                ...
+            },
+            'origin2': {
+                'destination21': [ 
+                    [start_time1, end_time1, price1],
+                    [start_time2, end_time2, price2],
+                    ...
+                ],
+                ...
+            },
+        }
+        ```
+        '''
         with open('data/flights.txt', 'r') as file:
             for line in file.readlines():
                 origin, destination, start_time, end_time, value = line.replace('\n', '').split(',')
@@ -44,14 +89,28 @@ class GeneticAlgorithm:
                 self._data[origin][destination].append((start_time, end_time, value))
         
     def _define_new_population(self) -> None:
+        '''
+        Generates 'population_size' individuals and append all of them to the population list.
+
+        This method generates the first set of individuals, but after it isn't called anymore.
+        '''
         for _ in range(self._population_size):
             self._population.append(Individual(self._data, None))
 
     def _fitness_function_for_all_population(self) -> None:
+        '''
+        Updates fitness from all population. 
+        '''
         for individual in self._population:
             individual.update_fitness_value()
 
     def _tournament_selection(self) -> Individual:
+        '''
+        Selects the fittest or lower fit individual from the tournament and returns it.
+
+        Returns:
+        The fittest or lower fit individual from the tournament
+        '''
         selected_individuals = random.choices(
             population = self._population,
             k = self._tournament_parameter_N
@@ -67,6 +126,17 @@ class GeneticAlgorithm:
         return selected_individuals[0 if select_fittest else -1]
 
     def _crossover(self, first_individual: Individual, second_individual: Individual) -> typing.Union[typing.Tuple[Individual], None]:
+        '''
+        If the crossover happens, two individuals are generate from the cross and both of them are returned.
+        Otherwise,  a None value is returned.
+
+        Parameters:
+        - ``first_individual``: the first individual 
+        - ``second_individual``: the second individual
+
+        Returns:
+        A tuple holding the children or None if the crossover didn't happen
+        '''
         generate_descendant = random.randint(0, 100) / 100 < self._probability_of_crossover
 
         if not generate_descendant:
@@ -91,6 +161,9 @@ class GeneticAlgorithm:
         return new_pair
 
     def _mutation(self) -> None:
+        '''
+        Iterates over all population and applies mutation if the probability occurs.
+        '''
         for individual in self._population:
             mutate = random.randint(0, 100) / 100 < self._probability_of_mutation
 
@@ -98,6 +171,9 @@ class GeneticAlgorithm:
                 individual.individual_mutation()
 
     def execute(self) -> None:
+        '''
+        Executes all process to define the answer.
+        '''
         self._define_new_population()
         for i in range(self._number_of_generations):
             
