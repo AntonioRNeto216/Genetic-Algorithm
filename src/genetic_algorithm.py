@@ -1,0 +1,140 @@
+'''
+File to define the GeneticAlgorithm Class 
+'''
+
+# Python Imports
+import random
+import typing
+
+# Src Imports
+from src.individual import Individual
+from src.data_visualizer import DataVisualizer
+
+
+class GeneticAlgorithm:
+
+    def __init__(self) -> None:
+        self._define_parameters_and_attributes()
+        self._generates_database()
+
+    def _define_parameters_and_attributes(self) -> None:
+        self._data = {}
+        self._population = []
+
+        self._data_visualizer = DataVisualizer()
+
+        self._number_of_generations = 100       #TODO low_number < N < high_number
+        self._population_size = 100             #TODO low_number < N < high_number
+        self._probability_of_crossover = 0.5    #TODO 0 < p < 1
+        self._probability_of_mutation = 0.05    #TODO 0 < p < 1
+        self._tournament_parameter_N = 5        #TODO N > 0
+        self._tournament_parameter_K = 0.75     #TODO 0 <= K <= 1
+
+    def _generates_database(self) -> None:
+        with open('data/flights.txt', 'r') as file:
+            for line in file.readlines():
+                origin, destination, start_time, end_time, value = line.replace('\n', '').split(',')
+            
+                if origin not in self._data:
+                    self._data[origin] = {}
+                
+                if destination not in self._data[origin]:
+                    self._data[origin][destination] = []
+
+                self._data[origin][destination].append((start_time, end_time, value))
+        
+    def _define_new_population(self) -> None:
+        for _ in range(self._population_size):
+            self._population.append(Individual(self._data, None))
+
+    def _fitness_function_for_all_population(self) -> None:
+        for individual in self._population:
+            individual.update_fitness_value()
+
+    def _tournament_selection(self) -> Individual:
+        selected_individuals = random.choices(
+            population = self._population,
+            k = self._tournament_parameter_N
+        )
+
+        selected_individuals.sort(
+            key = lambda individual : individual.return_fitness_value()
+        )
+
+        parameter_r = random.randint(0, 100) / 100 
+        select_fittest = parameter_r < self._tournament_parameter_K
+
+        return selected_individuals[0 if select_fittest else -1]
+
+    def _crossover(self, first_individual: Individual, second_individual: Individual) -> typing.Union[typing.Tuple[Individual], None]:
+        generate_descendant = random.randint(0, 100) / 100 < self._probability_of_crossover
+
+        if not generate_descendant:
+            return None
+        
+        position_to_cross = random.randint(1, 11)
+
+        first_new_individual_data = (first_individual.return_a_piece_of_individual_data(0, position_to_cross), second_individual.return_a_piece_of_individual_data(position_to_cross, -1))
+        first_new_individual = Individual(
+            data = self._data,
+            parents_individual_data_definition = first_new_individual_data
+        )
+
+        second_new_individual_data = (second_individual.return_a_piece_of_individual_data(0, position_to_cross), first_individual.return_a_piece_of_individual_data(position_to_cross, -1))
+        second_new_individual = Individual(
+            data = self._data,
+            parents_individual_data_definition = second_new_individual_data
+        )
+
+        new_pair = (first_new_individual, second_new_individual)
+
+        return new_pair
+
+    def _mutation(self) -> None:
+        for individual in self._population:
+            mutate = random.randint(0, 100) / 100 < self._probability_of_mutation
+
+            if mutate:
+                individual.individual_mutation()
+
+    def execute(self) -> None:
+        self._define_new_population()
+        for i in range(self._number_of_generations):
+            
+            self._fitness_function_for_all_population()
+            self._data_visualizer.new_generation_data(
+                generation_number = i + 1,
+                population = self._population
+            )
+
+            if i == self._number_of_generations - 1:
+                continue
+
+            new_population = []
+            while len(new_population) != self._population_size:
+                first_individual = self._tournament_selection()
+                second_individual = self._tournament_selection()
+
+                crossover_return = self._crossover(
+                    first_individual = first_individual,
+                    second_individual = second_individual
+                )
+
+                if crossover_return:
+                    new_population.append(crossover_return[0])
+                    new_population.append(crossover_return[1])
+
+            # Clears population list and defines a new population
+            self._population.clear()
+            self._population = new_population
+
+            self._mutation()
+
+        self._data_visualizer.generate_files(
+            number_of_generations = self._number_of_generations,
+            population_size = self._population_size,
+            probability_of_crossover = self._probability_of_crossover,
+            probability_of_mutation = self._probability_of_mutation,
+            tournament_parameter_N = self._tournament_parameter_N,
+            tournament_parameter_K = self._tournament_parameter_K
+        )
